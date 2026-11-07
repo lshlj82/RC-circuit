@@ -39,13 +39,14 @@ The four sections follow the order of the lecture notes. Every value is recomput
 
 1. **The RC circuit:** A live circuit with a two-way switch S. Set it to **a** to charge the capacitor or **b** to discharge it. Flipping the switch at any moment starts a new exponential approach toward the new equilibrium. The simulation runs in real time, with 0.25×, 1×, and 4× playback. While it runs, current dots flow and reverse direction on discharge, charge builds up on the capacitor plates, and q(t) and i(t) are traced against the theoretical curves. A live bar shows the loop rule ℰ = iR + q/C, with the emf shared between the resistor and the capacitor.
 2. **Charging:** The solution q(t) = Cℰ(1 − e<sup>−t/RC</sup>) and i(t) = (ℰ/R)e<sup>−t/RC</sup>, with markers at τ and 2τ. Pick any time t, and the values are substituted into ℰ − iR − q/C to show it equals 0 at every t.
-3. **Time constant τ = RC:** A derivation that Ω·F = s, followed by a side-by-side comparison of two circuits with different R and C. A table lists the remaining and charged fractions at τ, 2τ, 3τ, and 5τ (1/e ≈ 0.37, 1/e², …).
+3. **Time constant τ = RC:** A derivation that Ω·F = s, followed by a comparison of two circuits with different R and C. The time axis is fixed to circuit A (0 to 5τ_A), so changing circuit B reshapes B's curve; if τ_B runs past the axis, an arrow at the right edge gives its value. A table lists the remaining and charged fractions at τ, 2τ, 3τ, and 5τ (1/e ≈ 0.37, 1/e², …) and the corresponding times in both circuits.
 4. **Discharging:** The solution q(t) = q₀e<sup>−t/RC</sup> and i(t) = −(q₀/RC)e<sup>−t/RC</sup>, with a substitution check of R dq/dt + q/C = 0. A short note explains why the current is negative.
 
 ## Notes on the model
 
 - The circuit is ideal: the battery has no internal resistance, and the wires and switch have no resistance. R ranges over 10–200 kΩ and C over 5–100 μF, so τ runs from 50 ms to 20 s and can be watched in real time.
 - Every frame, the simulation updates the charge with the exact exponential step q ← q<sub>∞</sub> + (q − q<sub>∞</sub>)e<sup>−Δt/τ</sup>, so it stays accurate at any frame rate.
+- Readouts show exactly 0 once the charge or current has decayed below 0.1% of its natural scale (Cℰ for charge, ℰ/R for current); a nearly full capacitor likewise reads exactly Cℰ. The curves themselves are unchanged.
 - Changing ℰ, R, or C during a run keeps the capacitor's present charge and restarts the time axis from that moment.
 - The pages follow the system light or dark setting and respect `prefers-reduced-motion`, which starts the simulation paused.
 

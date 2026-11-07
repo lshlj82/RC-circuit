@@ -278,11 +278,11 @@ en:{
  h3:"The time constant τ = RC",
  p3:"Whatever sits in the exponent of <i>e</i><sup>−<i>t</i>/<i>RC</i></sup> must be a pure number, so <i>RC</i> has to have the dimension of time. It is called the capacitive time constant <i>τ</i> (tau), and it decides how quickly or slowly <i>e</i><sup>−<i>t</i>/<i>τ</i></sup> decays. If <i>τ</i> is large, <i>t</i>/<i>τ</i> stays small even when <i>t</i> is large, and the exponential is still far from zero. After one <i>τ</i>, the remaining part has shrunk to 1/<i>e</i> ≈ 0.37 of its original size; after 2<i>τ</i>, to 1/<i>e</i><sup>2</sup>; and so on.",
  tauNote:"The larger R or C is, the longer the process takes. τ sets its time scale.",
- cmpNote:"Circuit A uses <i>R</i> and <i>C</i> from the circuit above. Adjust circuit B and compare.",
+ cmpNote:"Circuit A uses <i>R</i> and <i>C</i> from the circuit above. The time axis is fixed to circuit A, from 0 to 5<i>τ</i><sub>A</sub>, so adjusting circuit B changes the shape of B's curve. If <i>τ</i><sub>B</sub> is longer than the axis, an arrow at the right edge shows its value.",
  resB:"Circuit B: <i>R</i>",capB:"Circuit B: <i>C</i>",
  rTauA:"<i>τ</i><sub>A</sub>",rTauB:"<i>τ</i><sub>B</sub>",
  pFrac:"fraction charged, q/Cℰ",pTime:"time t (s)",
- thT:"Time",thLeft:"Remaining, <i>e</i><sup>−<i>t</i>/<i>τ</i></sup>",thDone:"Charged, 1 − <i>e</i><sup>−<i>t</i>/<i>τ</i></sup>",thA:"in circuit A",
+ thT:"Time",thLeft:"Remaining, <i>e</i><sup>−<i>t</i>/<i>τ</i></sup>",thDone:"Charged, 1 − <i>e</i><sup>−<i>t</i>/<i>τ</i></sup>",thA:"in circuit A",thB:"in circuit B",
  h4:"Discharging",
  p4:"Now suppose the capacitor already holds charge <i>q</i><sub>0</sub> = <i>CV</i><sub>0</sub>, and the switch is moved to b. This disconnects the emf device, so the charge drains away through the resistor <i>R</i>. With no emf in the loop, the loop rule gives <i>R</i> d<i>q</i>/d<i>t</i> + <i>q</i>/<i>C</i> = 0. With <i>q</i>(0) = <i>q</i><sub>0</sub>, its solution is <i>q</i>(<i>t</i>) = <i>q</i><sub>0</sub><i>e</i><sup>−<i>t</i>/<i>RC</i></sup>, and the current is <i>i</i>(<i>t</i>) = −(<i>q</i><sub>0</sub>/<i>RC</i>)<i>e</i><sup>−<i>t</i>/<i>RC</i></sup>.",
  v0:"Starting voltage <i>V</i><sub>0</sub>",
@@ -308,6 +308,9 @@ function trimP(x,sig){let s=x.toPrecision(sig);if(s.includes("e"))s=String(+s);r
 function si(x,unit,sig=3){if(!isFinite(x))return"∞ "+unit;if(Math.abs(x)<1e-15)return"0 "+unit;
   const P=[[1e9,"G"],[1e6,"M"],[1e3,"k"],[1,""],[1e-3,"m"],[1e-6,"μ"],[1e-9,"n"],[1e-12,"p"]];const a=Math.abs(x);
   for(const[f,p]of P){if(a>=f*0.99995)return minus(trimP(x/f,sig))+" "+p+unit}return minus(trimP(x/1e-12,sig))+" p"+unit}
+// readouts show exactly 0 once a decaying quantity is below 0.1% of its natural scale (Cℰ for charge, ℰ/R for current)
+const ZERO_FRAC=1e-3;
+const snap0=(x,scale)=>Math.abs(x)<ZERO_FRAC*Math.abs(scale)?0:x;
 const fx=(x,d=2)=>minus((Math.abs(x)<0.5*10**-d?0:x).toFixed(d));
 function fmtTime(s){return s<1?fx(s*1000,0)+" ms":fx(s,s<10?2:1)+" s"}
 
@@ -420,15 +423,16 @@ function drawSimStatic(){const g=$("#simPlot");g.innerHTML="";const p=P(),tau=ta
   E("path",{d:curvePath(u=>(qi-q0)/tau*Math.exp(-u),Yi),fill:"none",stroke:"var(--red)","stroke-width":1.5,"stroke-dasharray":"5 5",opacity:.7},g);
   simG.trq=E("path",{fill:"none",stroke:"var(--blue)","stroke-width":3},g);simG.tri=E("path",{fill:"none",stroke:"var(--red)","stroke-width":3},g);
   simG.dq=E("circle",{r:5,fill:"var(--blue)"},g);simG.di=E("circle",{r:5,fill:"var(--red)"},g);simG.Yq=Yq;simG.Yi=Yi;simG.tau=tau;}
-function drawSim(){const p=P(),tau=tauOf(),i=curI();const ro=SIM.ro;
+function drawSim(){const p=P(),tau=tauOf(),i=snap0(curI(),p.E/p.R),q=snap0(SIM.q,p.C*p.E),qInfNow=qInf();const ro=SIM.ro;
+  const qShow=Math.abs(q-qInfNow)<ZERO_FRAC*p.C*p.E?qInfNow:q; // fully charged also reads exactly Cℰ
   ro.tau.textContent=fmtTime(tau);ro.t.textContent=fmtTime(SIM.tSw)+" = "+fx(SIM.tSw/tau,2)+"τ";
-  ro.q.textContent=si(SIM.q,"C");ro.i.textContent=si(i,"A");ro.vc.textContent=fx(SIM.q/p.C,2)+" V";ro.vr.textContent=fx(i*p.R,2)+" V";
-  const vR=i*p.R,vC=SIM.q/p.C;const tot=12;
+  ro.q.textContent=si(qShow,"C");ro.i.textContent=si(i,"A");ro.vc.textContent=fx(qShow/p.C,2)+" V";ro.vr.textContent=fx(i*p.R,2)+" V";
+  const vR=i*p.R,vC=qShow/p.C;const tot=12;
   $("#stR").style.width=Math.max(0,Math.min(100,Math.abs(vR)/tot*100))+"%";$("#stC").style.width=Math.max(0,Math.min(100,vC/tot*100))+"%";
   $("#loopEq").innerHTML=SIM.mode==="a"
     ?`ℰ = <i>iR</i> + <i>q</i>/<i>C</i>: &nbsp;${fx(p.E)} V = ${fx(vR)} V + ${fx(vC)} V`
     :`0 = <i>iR</i> + <i>q</i>/<i>C</i>: &nbsp;0 = (${fx(vR)} V) + ${fx(vC)} V`;
-  SIM.qLbl.textContent="q = "+si(SIM.q,"C");SIM.iLbl.textContent="i = "+si(i,"A");
+  SIM.qLbl.textContent="q = "+si(qShow,"C");SIM.iLbl.textContent="i = "+si(i,"A");
   drawPlates();
   const h=SIM.hist;let dq="",di="";for(let k=0;k<h.length;k++){const u=h[k][0]/simG.tau;if(u>5)break;const x=Xu(u).toFixed(1);dq+=(k?"L":"M")+x+","+simG.Yq(h[k][1]).toFixed(1);di+=(k?"L":"M")+x+","+simG.Yi(h[k][2]).toFixed(1)}
   simG.trq.setAttribute("d",dq);simG.tri.setAttribute("d",di);
@@ -458,7 +462,7 @@ function solPlot(svg,mode,u,p){const g=$(svg);g.innerHTML="";const tau=p.R*p.C;
   E("circle",{cx:Xu(u),cy:Yq(qf(u)),r:6,fill:"var(--magenta)"},g);E("circle",{cx:Xu(u),cy:Yi(ifn(u)),r:6,fill:"var(--magenta)"},g);
   return {q:qf(u),i:ifn(u),tau}}
 function upd2(){const p=P();const u=S.tc;const r=solPlot("#chPlot","c",u,p);const ro=S.ro2;
-  ro.t.textContent=fmtTime(u*r.tau);ro.q.textContent=si(r.q,"C");ro.i.textContent=si(r.i,"A");ro.vc.textContent=fx(r.q/p.C,2)+" V";ro.f.textContent=fx(100*(1-Math.exp(-u)),1)+"%";
+  ro.t.textContent=fmtTime(u*r.tau);ro.q.textContent=si(snap0(r.q-p.C*p.E,p.C*p.E)+p.C*p.E,"C");ro.i.textContent=si(snap0(r.i,p.E/p.R),"A");ro.vc.textContent=fx(r.q/p.C,2)+" V";ro.f.textContent=fx(100*(1-Math.exp(-u)),1)+"%";
   const iR=r.i*p.R,qC=r.q/p.C;
   S.chk2.innerHTML=`ℰ − <i>iR</i> − <i>q</i>/<i>C</i><br>= ${fx(p.E,3)} − (${si(r.i,"A")})(${si(p.R,"Ω")}) − (${si(r.q,"C")})/(${si(p.C,"F")})<br>= ${fx(p.E,3)} − ${fx(iR,3)} − ${fx(qC,3)} = <b>${fx(p.E-iR-qC,3)} V</b>`;}
 
@@ -468,16 +472,19 @@ function upd2(){const p=P();const u=S.tc;const r=solPlot("#chPlot","c",u,p);cons
   slider(c,{id:"CB",key:"capB",min:5,max:100,step:5,value:40,fmt:v=>v+" μF",on:upd3});
   S.ro3=readout(c,[["a","rTauA"],["b","rTauB"]]);})();
 function upd3(){const tA=tauOf(),tB=S.RB*1e3*S.CB*1e-6;S.ro3.a.textContent=fmtTime(tA);  S.ro3.b.innerHTML=fmtTime(tB)+" = "+fx(tB/tA,2)+" <i>τ</i><sub>A</sub>";
-  const g=$("#tauPlot");g.innerHTML="";const l=64,r=424,y0=28,y1=200;const T=5*Math.max(tA,tB);const X=s=>l+s/T*(r-l),Y=v=>y1-v*(y1-y0);
+  const g=$("#tauPlot");g.innerHTML="";const l=64,r=424,y0=28,y1=200;const T=5*tA;/* axis 0..5τ_A stays fixed while B changes */const X=s=>l+s/T*(r-l),Y=v=>y1-v*(y1-y0);
   [0,0.37,0.63,1].forEach(v=>{E("line",{x1:l,x2:r,y1:Y(v),y2:Y(v),class:"gridl"},g);txt(g,l-6,Y(v)+4,Math.round(v*100)+"%",{"text-anchor":"end","font-size":11,fill:"var(--muted)"})});
   for(let k=0;k<=5;k++){const s=T*k/5;E("line",{x1:X(s),x2:X(s),y1:y0,y2:y1,class:"gridl"},g);txt(g,X(s),y1+15,String(+s.toFixed(s<10?1:0)),{"text-anchor":"middle","font-size":11,fill:"var(--muted)"})}
   E("line",{x1:l,x2:r,y1:y1,y2:y1,class:"axis"},g);E("line",{x1:l,x2:l,y1:y0,y2:y1,class:"axis"},g);
   txt(g,(l+r)/2,y1+34,t("pTime"),{"text-anchor":"middle","font-size":12,fill:"var(--muted)"});txt(g,l,14,t("pFrac"),{"font-size":12,fill:"var(--muted)"});
-  [[tA,"var(--blue)","A"],[tB,"var(--magenta)","B"]].forEach(([tau,col,nm])=>{let d="";for(let k=0;k<=200;k++){const s=T*k/200;d+=(k?"L":"M")+X(s).toFixed(1)+","+Y(1-Math.exp(-s/tau)).toFixed(1)}
-    E("path",{d,fill:"none",stroke:col,"stroke-width":3},g);E("line",{x1:X(tau),x2:X(tau),y1:Y(0.632),y2:y1,stroke:col,"stroke-dasharray":"3 3"},g);
-    E("circle",{cx:X(tau),cy:Y(0.632),r:5,fill:col},g);txt(g,X(tau)+8,Y(0.632)+(nm==="A"?-8:16),"τ"+nm,{"font-size":12,fill:col,"font-weight":700})});
-  $("#tauTbl").innerHTML=`<tr><th>${t("thT")}</th><th>${t("thLeft")}</th><th>${t("thDone")}</th><th>${t("thA")}</th></tr>`+
-    [1,2,3,5].map(n=>`<tr><td>${n===1?"":n}<i>τ</i></td><td>${fx(Math.exp(-n),3)}${n===1?" = 1/<i>e</i>":n===2?" = 1/<i>e</i><sup>2</sup>":""}</td><td>${fx(100*(1-Math.exp(-n)),1)}%</td><td>${fmtTime(n*tA)}</td></tr>`).join("");}
+  [[tA,"var(--blue)","A"],[tB,"var(--magenta)","B"]].forEach(([tau,col,nm])=>{let d="";for(let k=0;k<=400;k++){const s=T*k/400;d+=(k?"L":"M")+X(s).toFixed(1)+","+Y(1-Math.exp(-s/tau)).toFixed(1)}
+    E("path",{d,fill:"none",stroke:col,"stroke-width":3},g);
+    if(tau<=T){E("line",{x1:X(tau),x2:X(tau),y1:Y(0.632),y2:y1,stroke:col,"stroke-dasharray":"3 3"},g);
+      E("circle",{cx:X(tau),cy:Y(0.632),r:5,fill:col},g);txt(g,X(tau)+8,Y(0.632)+(nm==="A"?-8:16),"τ"+nm,{"font-size":12,fill:col,"font-weight":700})}
+    else{const yE=Y(1-Math.exp(-T/tau));E("polygon",{points:`${r-2},${yE-6} ${r+8},${yE} ${r-2},${yE+6}`,fill:col},g);
+      txt(g,r-4,yE-10,"τ"+nm+" = "+fmtTime(tau)+" →",{"text-anchor":"end","font-size":12,fill:col,"font-weight":700})}});
+  $("#tauTbl").innerHTML=`<tr><th>${t("thT")}</th><th>${t("thLeft")}</th><th>${t("thDone")}</th><th>${t("thA")}</th><th>${t("thB")}</th></tr>`+
+    [1,2,3,5].map(n=>`<tr><td>${n===1?"":n}<i>τ</i></td><td>${fx(Math.exp(-n),3)}${n===1?" = 1/<i>e</i>":n===2?" = 1/<i>e</i><sup>2</sup>":""}</td><td>${fx(100*(1-Math.exp(-n)),1)}%</td><td>${fmtTime(n*tA)}</td><td>${fmtTime(n*tB)}</td></tr>`).join("");}
 
 /* ---------- 4. discharging ---------- */
 (function setup4(){const c=$("#c4");H("div",{class:"small","data-i18n":"usesAbove"},c);
@@ -487,7 +494,7 @@ function upd3(){const tA=tauOf(),tB=S.RB*1e3*S.CB*1e-6;S.ro3.a.textContent=fmtTi
   H("div",{class:"lbl","data-i18n":"chkH",style:"margin-top:6px;font-weight:500"},c);S.chk4=H("div",{class:"eq"},c);H("div",{class:"pill","data-i18n":"holds"},c);})();
 L.q0="<i>q</i><sub>0</sub> = <i>CV</i><sub>0</sub>";
 function upd4(){const p=P();p.q0=p.C*S.V0;const u=S.td;const r=solPlot("#dcPlot","d",u,p);const ro=S.ro4;
-  ro.q0.textContent=si(p.q0,"C");ro.t.textContent=fmtTime(u*r.tau);ro.q.textContent=si(r.q,"C");ro.i.textContent=si(r.i,"A");ro.f.textContent=fx(100*Math.exp(-u),1)+"%";
+  ro.q0.textContent=si(p.q0,"C");ro.t.textContent=fmtTime(u*r.tau);ro.q.textContent=si(snap0(r.q,p.q0),"C");ro.i.textContent=si(snap0(r.i,p.q0/r.tau),"A");ro.f.textContent=fx(100*Math.exp(-u),1)+"%";
   const iR=r.i*p.R,qC=r.q/p.C;
   S.chk4.innerHTML=`<i>R</i> d<i>q</i>/d<i>t</i> + <i>q</i>/<i>C</i> = <i>iR</i> + <i>q</i>/<i>C</i><br>= (${si(r.i,"A")})(${si(p.R,"Ω")}) + (${si(r.q,"C")})/(${si(p.C,"F")})<br>= ${fx(iR,3)} + ${fx(qC,3)} = <b>${fx(iR+qC,3)} V</b>`;}
 
